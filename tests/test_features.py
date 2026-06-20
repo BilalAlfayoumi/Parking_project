@@ -1,23 +1,36 @@
-"""Tests du nettoyage et de la construction de features (semaine 2)."""
+"""Tests du nettoyage, de la reconstruction d'occupation et des features."""
 
 from __future__ import annotations
 
 import pandas as pd
-import pytest
 
-from parking import features
-
-
-@pytest.mark.skip(reason="À implémenter en semaine 2")
-def test_clean_sensors_supprime_incoherences(raw_sensor_events: pd.DataFrame) -> None:
-    """clean_sensors doit retirer les lignes où depart < arrivee."""
-    cleaned = features.clean_sensors(raw_sensor_events)
-    assert (cleaned["depart"] >= cleaned["arrivee"]).all()
+from parking.features import (
+    FEATURE_COLS,
+    add_time_features,
+    clean_events,
+    make_features,
+    occupancy_for_street,
+)
 
 
-@pytest.mark.skip(reason="À implémenter en semaine 2")
-def test_make_features_renvoie_X_et_y(raw_sensor_events: pd.DataFrame) -> None:
-    """make_features doit renvoyer un couple (X, y) aligné."""
-    occ = features.build_occupancy_table(features.clean_sensors(raw_sensor_events))
-    X, y = features.make_features(occ)
+def test_clean_events_removes_invalid(events: pd.DataFrame) -> None:
+    """Les durées <= 0 et les départs avant arrivées sont retirés."""
+    cleaned = clean_events(events)
+    assert len(cleaned) == 2
+    assert (cleaned["duration_min"] > 0).all()
+
+
+def test_occupancy_rate_in_bounds(events: pd.DataFrame) -> None:
+    """Le taux d'occupation reste dans [0, 1] et la table a la bonne forme."""
+    occ = occupancy_for_street(clean_events(events))
+    assert {"slot", "occupancy_rate", "n_bays"} <= set(occ.columns)
+    assert occ["occupancy_rate"].between(0, 1).all()
+
+
+def test_make_features_shapes(events: pd.DataFrame) -> None:
+    """make_features renvoie X (FEATURE_COLS) et y alignés."""
+    occ = occupancy_for_street(clean_events(events))
+    occ["street_name"] = "RUE A"
+    X, y = make_features(add_time_features(occ))
+    assert list(X.columns) == FEATURE_COLS
     assert len(X) == len(y)
