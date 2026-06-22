@@ -27,6 +27,10 @@ data/interim/*
 data/processed/*
 !data/**/.gitkeep
 
+# Historique des parkings Bordeaux : VERSIONNÉ (collecté par la CI, sert au ML)
+!data/history/
+!data/history/**
+
 # Modèles entraînés (artefacts lourds, sauf .gitkeep)
 models/*
 !models/.gitkeep
