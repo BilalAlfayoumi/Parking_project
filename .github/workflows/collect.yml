@@ -1,0 +1,48 @@
+name: Collect Bordeaux parking history
+
+# Relève l'état des parkings de Bordeaux et accumule l'historique (pour le ML).
+on:
+  schedule:
+    - cron: "*/30 * * * *" # toutes les 30 minutes (UTC)
+  workflow_dispatch: {} # permet aussi un lancement manuel depuis l'onglet Actions
+
+# Autorise le job à committer le fichier d'historique mis à jour.
+permissions:
+  contents: write
+
+# Évite que deux collectes se chevauchent.
+concurrency:
+  group: collect-bordeaux
+  cancel-in-progress: false
+
+jobs:
+  collect:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v4
+        with:
+          enable-cache: true
+
+      - name: Set up Python
+        run: uv python install 3.11
+
+      - name: Install dependencies
+        run: uv sync
+
+      - name: Collect snapshot
+        run: uv run python -m parking.collect
+
+      - name: Commit updated history
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add data/history/bordeaux_parkings.parquet
+          if git diff --cached --quiet; then
+            echo "Aucune nouvelle donnée à committer."
+          else
+            git commit -m "data: collecte parkings Bordeaux $(date -u '+%Y-%m-%d %H:%M UTC')"
+            git push
+          fi
