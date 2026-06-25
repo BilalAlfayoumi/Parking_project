@@ -10,6 +10,7 @@ prévision, on accumule l'historique nous-mêmes (voir ``parking.collect``).
 
 from __future__ import annotations
 
+import time
 from datetime import UTC, datetime
 
 import pandas as pd
@@ -22,24 +23,39 @@ _HEADERS = {"User-Agent": "parking-project/1.0 (research)"}
 _SELECT = "ident,nom,secteur,exploit,total,libres,geo_point_2d,mdate"
 
 
-def fetch_live(timeout: int = 30) -> pd.DataFrame:
+def fetch_live(timeout: int = 30, retries: int = 3, backoff: int = 5) -> pd.DataFrame:
     """Récupère l'état temps réel des parkings de Bordeaux raccordés au flux.
 
+    L'API publique a des micro-pannes ponctuelles (timeouts) : on réessaie
+    plusieurs fois avant d'abandonner, pour fiabiliser la collecte automatique.
+
     Args:
-        timeout: Délai maximal de la requête HTTP, en secondes.
+        timeout: Délai maximal de chaque requête HTTP, en secondes.
+        retries: Nombre de tentatives en cas d'erreur réseau.
+        backoff: Délai (s) entre deux tentatives, multiplié par le numéro d'essai.
 
     Returns:
         DataFrame, une ligne par parking, avec colonnes :
         ``ident, nom, secteur, exploit, total, libres, lat, lon, mdate,
         occupancy_rate, free_rate, fetched_at``.
+
+    Raises:
+        requests.RequestException: Si toutes les tentatives échouent.
     """
     params = {
         "where": "libres IS NOT NULL AND total > 0",
         "select": _SELECT,
         "limit": "100",
     }
-    resp = requests.get(BASE_URL, params=params, headers=_HEADERS, timeout=timeout)
-    resp.raise_for_status()
+    for attempt in range(1, retries + 1):
+        try:
+            resp = requests.get(BASE_URL, params=params, headers=_HEADERS, timeout=timeout)
+            resp.raise_for_status()
+            break
+        except requests.RequestException:
+            if attempt == retries:
+                raise
+            time.sleep(backoff * attempt)
     rows = resp.json().get("results", [])
 
     df = pd.json_normalize(rows)

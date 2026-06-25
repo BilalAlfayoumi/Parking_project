@@ -13,6 +13,7 @@ from __future__ import annotations
 from pathlib import Path
 
 import pandas as pd
+import requests
 
 from parking.bordeaux import fetch_live_fresh
 from parking.config import DATA_DIR
@@ -50,8 +51,17 @@ def collect_snapshot(history_file: Path = HISTORY_FILE) -> tuple[int, int]:
 
 
 def main() -> None:
-    """Point d'entrée CLI : effectue une collecte et affiche le bilan."""
-    n_new, n_total = collect_snapshot()
+    """Point d'entrée CLI : effectue une collecte et affiche le bilan.
+
+    Si l'API Bordeaux reste injoignable malgré les tentatives, on sort
+    proprement (sans erreur) : une collecte manquée n'est pas critique et on
+    évite ainsi les alertes d'échec inutiles. La prochaine collecte réessaiera.
+    """
+    try:
+        n_new, n_total = collect_snapshot()
+    except requests.RequestException as exc:
+        print(f"API Bordeaux injoignable, collecte ignorée cette fois : {exc}")
+        return
     print(f"Relevé : {n_new} parkings · historique total : {n_total:,} lignes -> {HISTORY_FILE}")
 
 
