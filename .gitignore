@@ -40,4 +40,6 @@ models/*
 .idea/
 .vscode/
 
+# Notes personnelles en markdown ignorées, SAUF le README (vitrine du repo)
 *.md
+!README.md
