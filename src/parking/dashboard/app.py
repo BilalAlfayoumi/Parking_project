@@ -124,8 +124,48 @@ def _render_melbourne(st: Any, pdk: Any) -> None:
     )
 
 
+def _render_bordeaux_forecast(st: Any, parking: str, ident: str) -> None:
+    """Section prévision : remplissage prédit du parking à une heure/jour choisis.
+
+    Le modèle est entraîné à la volée sur l'historique collecté (mis en cache),
+    pour rester à jour sans dépendre d'un fichier modèle versionné.
+    """
+    from parking.bordeaux_model import FEATURES, train_forecast
+
+    @st.cache_resource(ttl=3600)
+    def _bundle() -> dict[str, Any]:
+        return train_forecast()
+
+    st.divider()
+    st.subheader("🔮 Prévision du remplissage")
+    try:
+        bundle = _bundle()
+    except Exception as exc:  # noqa: BLE001 — pas assez d'historique, on informe
+        st.info(f"Prévision indisponible (historique insuffisant) : {exc}")
+        return
+    if ident not in bundle["parks"]:
+        st.info("Pas encore assez d'historique pour ce parking.")
+        return
+
+    c1, c2 = st.columns(2)
+    jour = c1.selectbox("Jour", range(7), format_func=lambda i: JOURS[i], key="bx_jour")
+    heure = c2.slider("Heure", 0, 23, 18, key="bx_heure")
+    row = {
+        "park_code": list(bundle["parks"]).index(ident),
+        "hour": heure,
+        "day_of_week": jour,
+        "is_weekend": int(jour >= 5),
+    }
+    occ = float(bundle["model"].predict(pd.DataFrame([row])[FEATURES])[0])
+    occ = min(max(occ, 0.0), 1.0)
+    st.metric(f"Disponibilité prévue — {parking}, {JOURS[jour]} {heure}h", f"{1 - occ:.0%}")
+    st.caption(
+        f"Modèle entraîné sur l'historique collecté · R² {bundle['scores']['model']['R2']:.2f}"
+    )
+
+
 def _render_bordeaux(st: Any, pdk: Any) -> None:
-    """Onglet Bordeaux : disponibilité des parkings en temps réel (sans modèle)."""
+    """Onglet Bordeaux : disponibilité des parkings en temps réel + prévision."""
     from parking.bordeaux import fetch_live_fresh
 
     st.header("🇫🇷 Bordeaux — parkings en temps réel")
@@ -154,6 +194,8 @@ def _render_bordeaux(st: Any, pdk: Any) -> None:
     m1.metric("Places libres", f"{int(one['libres'])} / {int(one['total'])}")
     m2.metric("Disponibilité", f"{one['free_rate']:.0%}")
     m3.metric("Secteur", str(one["secteur"]).replace("_", " ").title())
+
+    _render_bordeaux_forecast(st, parking, str(one["ident"]))
 
     df_map = df.dropna(subset=["lat", "lon"]).copy()
     df_map["color"] = df_map["free_rate"].apply(_color)

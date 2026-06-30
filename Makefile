@@ -15,8 +15,11 @@ format:  ## Formate le code
 test:  ## Lance les tests
 	uv run pytest
 
-train:  ## Entraîne et sauvegarde le modèle (jalon semaine 4)
+train:  ## Entraîne et sauvegarde le modèle Melbourne (jalon semaine 4)
 	uv run python -m parking.model
+
+train-bordeaux:  ## Entraîne le modèle de prévision des parkings Bordeaux
+	uv run python -m parking.bordeaux_model
 
 api:  ## Démarre l'API FastAPI en local
 	uv run uvicorn parking.api.main:app --reload
