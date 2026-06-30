@@ -31,9 +31,14 @@ data/processed/*
 !data/history/
 !data/history/**
 
+# Géo des rues Melbourne : VERSIONNÉE (légère, nécessaire au dashboard déployé)
+!data/interim/melbourne_street_geo.parquet
+
 # Modèles entraînés (artefacts lourds, sauf .gitkeep)
 models/*
 !models/.gitkeep
+# Snapshot du modèle Melbourne : VERSIONNÉ (léger, nécessaire au dashboard déployé)
+!models/model.joblib
 
 # OS / IDE
 .DS_Store
