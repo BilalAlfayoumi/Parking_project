@@ -70,9 +70,6 @@ numpy==2.4.6
     #   scikit-learn
     #   scipy
     #   streamlit
-    #   xgboost
-nvidia-nccl-cu12==2.30.7 ; sys_platform == 'linux'
-    # via xgboost
 packaging==26.2
     # via
     #   altair
@@ -119,13 +116,9 @@ rpds-py==2026.5.1
 scikit-learn==1.9.0
     # via parking
 scipy==1.17.1 ; python_full_version < '3.12'
-    # via
-    #   scikit-learn
-    #   xgboost
+    # via scikit-learn
 scipy==1.18.0 ; python_full_version >= '3.12'
-    # via
-    #   scikit-learn
-    #   xgboost
+    # via scikit-learn
 six==1.17.0
     # via python-dateutil
 smmap==5.0.3
@@ -170,7 +163,3 @@ watchdog==6.0.0 ; sys_platform != 'darwin'
     # via streamlit
 websockets==16.0
     # via streamlit
-xgboost==3.2.0 ; python_full_version < '3.12'
-    # via parking
-xgboost==3.3.0 ; python_full_version >= '3.12'
-    # via parking

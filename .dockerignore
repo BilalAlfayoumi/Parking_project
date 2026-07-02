@@ -1,0 +1,26 @@
+# Environnements et caches
+.venv
+.git
+.github
+__pycache__
+*.pyc
+.mypy_cache
+.ruff_cache
+.pytest_cache
+htmlcov
+.coverage
+
+# Données lourdes exclues, SAUF les 3 artefacts que le Dockerfile copie
+data/raw
+data/processed
+data/interim
+!data/interim/melbourne_street_geo.parquet
+data/history
+!data/history/bordeaux_parkings.parquet
+models
+!models/model.joblib
+
+# Notebooks et notes
+notebooks
+*.md
+!README.md
